@@ -25,7 +25,12 @@ class SimplicialComplexOperators {
          * @param {module:Core.Mesh} mesh The input mesh which we index.
          */
         assignElementIndices(mesh) {
-                // TODO
+                for(var [i, v] of mesh.vertices.entries())
+                        v.index = i;
+                for(var [i, e] of mesh.edges.entries())
+                        e.index = i;
+                for(var [i, f] of mesh.faces.entries())
+                        f.index = i;
         }
 
         /** Returns the vertex-edge adjacency matrix of the given mesh.
@@ -34,7 +39,13 @@ class SimplicialComplexOperators {
          * @returns {module:LinearAlgebra.SparseMatrix} The vertex-edge adjacency matrix of the given mesh.
          */
         buildVertexEdgeAdjacencyMatrix(mesh) {
-                // TODO
+                let T = new Triplet(mesh.edges.length, mesh.vertices.length);
+                for(var he of mesh.halfedges) {
+                        let v = he.vertex.index;
+                        let e = he.edge.index;
+                        T.addEntry(1, e, v);
+                }
+                return SparseMatrix.fromTriplet(T);
         }
 
         /** Returns the edge-face adjacency matrix.
@@ -43,7 +54,13 @@ class SimplicialComplexOperators {
          * @returns {module:LinearAlgebra.SparseMatrix} The edge-face adjacency matrix of the given mesh.
          */
         buildEdgeFaceAdjacencyMatrix(mesh) {
-                // TODO
+                let T = new Triplet(mesh.faces.length, mesh.edges.length);
+                for(var he of mesh.halfedges) {
+                        let f = he.face.index;
+                        let e = he.edge.index;
+                        T.addEntry(1, f, e);
+                }
+                return SparseMatrix.fromTriplet(T);
         }
 
         /** Returns a column vector representing the vertices of the
@@ -54,7 +71,11 @@ class SimplicialComplexOperators {
          *  vertex i is in the given subset and 0 otherwise
          */
         buildVertexVector(subset) {
-                // TODO
+                let verts = subset.vertices;
+                let vec = DenseMatrix.zeros(verts.length, 1);
+                for(var [i, v] of verts.entries())
+                        vec.set(v.index, i, 0);
+                return vec
         }
 
         /** Returns a column vector representing the edges of the
@@ -65,7 +86,11 @@ class SimplicialComplexOperators {
          *  edge i is in the given subset and 0 otherwise
          */
         buildEdgeVector(subset) {
-                // TODO
+                let arr = subset.edges;
+                let vec = DenseMatrix.zeros(arr.length, 1);
+                for(var [i, x] of arr.entries())
+                        vec.set(x.index, i, 0);
+                return vec
         }
 
         /** Returns a column vector representing the faces of the
@@ -76,7 +101,11 @@ class SimplicialComplexOperators {
          *  face i is in the given subset and 0 otherwise
          */
         buildFaceVector(subset) {
-                // TODO
+                let arr = subset.faces;
+                let vec = DenseMatrix.zeros(arr.length, 1);
+                for(var [i, x] of arr.entries())
+                        vec.set(x.index, i, 0);
+                return vec
         }
 
         /** Returns the star of a subset.
@@ -85,9 +114,20 @@ class SimplicialComplexOperators {
          * @returns {module:Core.MeshSubset} The star of the given subset.
          */
         star(subset) {
-                // TODO
-
-                return subset; // placeholder
+                var new_set = MeshSubset.deepCopy(subset);
+                for(let v of subset.vertices) {
+                        var v_obj = this.mesh.vertices[v];
+                        for(let e of v_obj.adjacentEdges())
+                                new_set.edges.add(e.index);
+                        for(let f of v_obj.adjacentFaces())
+                                new_set.faces.add(f.index);
+                }
+                for(let e of subset.edges) {
+                        var he = this.mesh.edges[e].halfedge;
+                        new_set.faces.add(he.face.index);
+                        new_set.faces.add(he.twin.face.index);
+                }
+                return new_set; // placeholder
         }
 
         /** Returns the closure of a subset.
